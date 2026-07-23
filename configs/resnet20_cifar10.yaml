@@ -1,0 +1,34 @@
+# Search configuration for ResNet20 / CIFAR-10 (paper, Sec. IV-A).
+# Consumed by experiments/*.py via the matching command-line flags.
+model: resnet20
+dataset: cifar10
+checkpoint: runs/resnet20_baseline.pt
+
+search:
+  iterations: 200          # evolutionary generations
+  population: 300          # graph candidates per generation
+  tournament_k: 5
+  elitism: 4
+  crossover_prob: 0.8
+  mutation_prob: 0.9
+  acc_equivalence: 1.0     # <1% absolute -> prefer the lower-latency operator
+  fitness_batches: 4       # validation batches used as the fitness signal
+  const_opt_epochs: 100    # Algorithm 1 iterations per candidate
+  const_opt_lr: 0.01
+  min_nodes: 6
+  max_nodes: 14
+
+layers:                     # the seven layers of Figs. 4-7
+  - 1.1.conv1
+  - 1.2.conv1
+  - 2.0.conv2
+  - 2.2.conv2
+  - 3.0.conv2
+  - 3.2.conv1
+  - 3.2.conv2
+
+finetune:                   # Sec. IV-A
+  epochs: 50
+  optimizer: sgd
+  lr: 0.1
+  momentum: 0.9

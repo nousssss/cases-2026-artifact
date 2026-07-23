@@ -1,0 +1,26 @@
+# Search configuration for ConvNeXt-T / ImageNet (paper, Sec. IV-D).
+# The target layers are 7x7 depthwise convolutions: K = Cin * 49 is large, so
+# operator_chunk bounds the peak memory of the patch view.
+model: convnext_tiny
+dataset: imagenet
+pretrained: true
+
+search:
+  iterations: 200
+  population: 300
+  fitness_batches: 4
+  const_opt_epochs: 100
+  operator_chunk: 8192
+
+layers:                     # Fig. 8(c)-(d)
+  - 0.0.dwconv
+  - 0.2.dwconv
+  - 2.0.dwconv
+  - 2.3.dwconv
+  - 3.1.dwconv
+
+finetune:                   # Sec. IV-A
+  epochs: 50
+  optimizer: adamw
+  lr: 0.00005
+  weight_decay: 0.00000001
