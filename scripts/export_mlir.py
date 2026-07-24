@@ -15,9 +15,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from conas.compiler import rows_for, to_mlir  # noqa: E402
-from conas.compiler.backend import MLIRBackend  # noqa: E402
-from conas.graph import ComputationGraph  # noqa: E402
+from conas.compiler import rows_for, to_mlir  
+from conas.compiler.backend import MLIRBackend  
+from conas.graph import ComputationGraph  
 
 
 def main() -> None:

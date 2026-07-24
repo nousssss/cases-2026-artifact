@@ -5,7 +5,7 @@ These are the build instructions used to set up torch-mlir and the two LLVM
 instructions, kept here so the artifact is self-contained; the live version
 (which may have since been updated) is at
 <https://github.com/nousssss/Convert-PyTorch-models-to-MLIR>. LLVM and
-torch-mlir themselves are third-party and are not vendored — this is build
+torch-mlir themselves are third-party and are not vendored, this is build
 instructions only, per `REQUIREMENTS.md`.
 
 You need **two** builds of the steps below (see `README.md` in this

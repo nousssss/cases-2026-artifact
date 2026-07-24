@@ -8,8 +8,7 @@ The live version of this pipeline is developed at
 
 The two external toolchains these scripts drive -- torch-mlir/LLVM and
 MLAutoScheduler -- **are** third-party and are not vendored. See `BUILD.md`
-in this directory for the torch-mlir/LLVM build steps (author's own
-instructions, kept here so they're not lost if the live repo above changes),
+in this directory for the torch-mlir/LLVM build steps,
 and the top-level `REQUIREMENTS.md` for MLAutoScheduler.
 
 ## Files
