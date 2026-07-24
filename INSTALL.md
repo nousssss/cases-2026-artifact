@@ -1,13 +1,12 @@
 # Install
 
-These steps cover the **search framework only** — no dataset download, no
-MLIR toolchain. For the compiler-integrated half, see `REQUIREMENTS.md` and
+These steps cover the **search framework only**. For the compiler-integrated half, see `REQUIREMENTS.md` and
 `mlir_pipeline/README.md`.
 
 ## 1. Environment
 
 ```bash
-git clone <this-repo> && cd conas
+git clone https://github.com/nousssss/cases-2026-artifact && cd conas
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
@@ -67,14 +66,11 @@ ComputationGraph[1.1.conv1] 1 primitives, 1 constants, 2304 learned parameters
 ```
 
 Success criterion: the process exits without a traceback and prints a
-`Discovered operator:` section like the one above (exact accuracy/latency
-numbers will vary run to run — synthetic data and an untrained baseline are
-not seeded for reproducible accuracy, only for reproducible *execution*).
+`Discovered operator:` section like the one above.
 
 ## 4. Real experiments (optional, needs real data / a checkpoint)
 
-See the top-level `README.md`'s "Quick start" and "Reproducing the figures"
-sections.
+See the top-level `README.md`'s "Quick start".
 
 ## 5. MLIR / compiler-integrated half (optional)
 
@@ -84,5 +80,5 @@ build steps. Once built:
 ```bash
 export CONAS_MLIR_SOLUTION_BUILD_DIR=/path/to/solution/llvm-project/build
 export CONAS_MLIR_AUTOSCHEDULER_BUILD_DIR=/path/to/autoscheduler/llvm-project/build
-pytest tests/test_mlir_lowering.py -v   # should now run instead of skip
+pytest tests/test_mlir_lowering.py -v  
 ```

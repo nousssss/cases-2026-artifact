@@ -9,15 +9,15 @@ Neural Network A ──▶ [ Operator Search (NAS) + Compiler Optimization (MLIR
                      Latency(A') < Latency(A),  Accuracy(A') ≥ Accuracy(A) − γ
 ```
 
-**What runs standalone vs. what doesn't.** The search framework itself — graph
+**What runs standalone vs. what doesn't.** The search framework itself (graph
 generation, mutation/crossover, structure-guided initialisation, constant
-optimisation, fitness evaluation, the whole evolutionary loop — is pure
+optimisation, fitness evaluation, the whole evolutionary loop) is pure
 PyTorch and runs with just `pip install -r requirements.txt`; see `INSTALL.md`
 for a from-scratch install and a synthetic-data smoke test that needs no
 dataset and no external toolchain. The **compiler-integrated speedup numbers**
 reported in Figs. 6–7 (the `mlir` backend, Sec. III-F) additionally require
 two from-source LLVM 17 builds, torch-mlir built from source, and (for the
-autoscheduled variant) MLAutoScheduler built from its own repository — see
+autoscheduled variant) MLAutoScheduler built from its own repository. See
 `REQUIREMENTS.md`, `mlir_pipeline/README.md`, and
 [Compiler backends](#compiler-backends) below. Building that toolchain takes
 real time (hours) and disk (tens of GB); it is not required to use or evaluate
@@ -29,7 +29,7 @@ artifact's badge claim does and doesn't cover.
 ## Install
 
 ```bash
-git clone <this-repo> && cd conas
+git clone https://github.com/nousssss/cases-2026-artifact.git && cd conas
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
@@ -44,7 +44,7 @@ is **optional** — see [Compiler backends](#compiler-backends).
 ## Quick start
 
 ```bash
-# 1. Train the baseline A (no canonical CIFAR ResNet20 checkpoint exists)
+# 1. Train the baseline A (example for CIFAR10 on ResNet20)
 python scripts/train_baseline.py --model resnet20 --epochs 200 \
     --out runs/resnet20_baseline.pt
 
@@ -69,7 +69,7 @@ To exercise the pipeline without any dataset, pass `--dataset synthetic`.
 | Table I — primitive operations | `conas/primitives.py` |
 | Sec. III-B — search space, DAG, validity, pruning | `conas/graph.py`, `conas/operator.py` |
 | Sec. III-B1 — random generation, proximity weighting | `conas/generation.py` |
-| Sec. III-B2 / Algorithm 1 — constant optimisation | `conas/constant_opt.py` |
+| Sec. III-B2 / Algorithm 1: constant optimisation | `conas/constant_opt.py` |
 | Sec. III-C — tournament selection, crossover, mutation | `conas/evolution.py`, `conas/search.py` |
 | Sec. III-D — structure-guided initialisation | `conas/init_struct.py` |
 | Sec. III-E — evaluation method, Eq. (1) and Eq. (2) | `conas/evaluation.py`, `conas/init_struct.py` |
@@ -91,7 +91,7 @@ Xc ∈ ℝ^{M×Cin}               centre vector of each patch
 
 Every intermediate node carries an `(M, d)` matrix, so shape inference reduces to tracking the trailing dimension `d`. Shape correctness is enforced **only at the output** (`d == Cout`), exactly as the paper specifies; intermediate widths are unconstrained.
 
-Patch extraction, centre selection and the final reshape are the layer-level interface and are **not** counted as search primitives — matching Sec. III-E. `graph.n_primitives` and `graph.primitive_histogram()` count only Table I operations.
+Patch extraction, centre selection and the final reshape are the layer-level interface and are **not** counted as search primitives. `graph.n_primitives` and `graph.primitive_histogram()` count only Table I operations.
 
 Computational correctness (no division by zero, no `log`/`sqrt` of a negative) is checked by evaluating the DAG on random inputs with *strict*, unguarded primitives and rejecting any NaN/Inf. During search the guarded variants run instead, so a graph that is valid on the probe cannot blow up on a rare batch.
 
@@ -107,9 +107,9 @@ Figures 6 and 7 report each variant **with** and **without** code optimisation. 
 | `inductor` | *with* code optimisation (portable default) | `torch.compile` |
 | `mlir` | *with* code optimisation (paper configuration) | two LLVM 17 builds + torch-mlir |
 
-The MLIR path is CONAS's integration point for **two separate, external toolchains** — build and use each per its own repo, not this one:
+The MLIR path is CONAS's integration point for **two separate, external toolchains**, so build and use each per its own repo:
 
-* **torch-mlir / LLVM 17** — this project's own working torch-mlir setup. The
+* **torch-mlir / LLVM 17**: this project's own working torch-mlir setup. The
   scripts (`convert.sh`/`execute.sh`/`wrap.py`/`touchup.py`/`example.ipynb`)
   are archived in [`mlir_pipeline/`](mlir_pipeline); `conas/compiler/backend.py`
   reproduces the `convert.sh`/`execute.sh` pipeline exactly (same flags, same
@@ -117,10 +117,8 @@ The MLIR path is CONAS's integration point for **two separate, external toolchai
   `touchup.py`/`wrap.py` into Python. Build steps are in
   [`mlir_pipeline/BUILD.md`](mlir_pipeline/BUILD.md) (also developed live at
   <https://github.com/nousssss/Convert-PyTorch-models-to-MLIR>, linked rather
-  than vendored here since LLVM/torch-mlir version pinning is fragile enough —
-  nightly wheels get pruned, pass names change across versions — that keeping
-  two copies of the build instructions in sync isn't worth it).
-* **[MLAutoScheduler](https://github.com/Modern-Compilers-Lab/MLAutoScheduler)** (Aouadj & Baghdadi) — the actual autoscheduler behind Sec. III-F's "MLIR autoscheduler" mention. It's a standalone beam-search-plus-execution benchmarking tool (`AutoSchedulerML <file.mlir>`), not a filter step CONAS calls automatically: `MLIRBackend.run_autoscheduler()` runs it on an already-lowered module and lets you inspect its own JSON/log output. Build and use it per that repo's README (third-party, not vendored; see `REQUIREMENTS.md`).
+  than vendored here).
+* **[MLAutoScheduler](https://github.com/Modern-Compilers-Lab/MLAutoScheduler)** (Aouadj & Baghdadi): the actual autoscheduler behind Sec. III-F's "MLIR autoscheduler" mention. It's a standalone beam-search-plus-execution benchmarking tool (`AutoSchedulerML <file.mlir>`), not a filter step CONAS calls automatically: `MLIRBackend.run_autoscheduler()` runs it on an already-lowered module and lets you inspect its own JSON/log output. Build and use it per that repo's README (third-party, not vendored; see `REQUIREMENTS.md`).
 
 Once both are built, point CONAS at them, this is the part that's actually CONAS's contract, so it's documented here:
 
@@ -135,9 +133,9 @@ export CONAS_MLAUTOSCHEDULER_BIN=/path/to/MLAutoScheduler/build/bin/AutoSchedule
 python experiments/q2_init_comparison.py --backend mlir
 ```
 
-Each `*_BUILD_DIR` must contain `bin/` and `lib/` with the binaries/libraries `MLIRToolchain` in `backend.py` expects (`mlir-opt`, `mlir-cpu-runner`, `libmlir_runner_utils.so`, `libmlir_c_runner_utils.so`, `libomp.so` — see that class's docstring for exactly which build provides which). A missing variable raises naming itself rather than failing silently.
+Each `*_BUILD_DIR` must contain `bin/` and `lib/` with the binaries/libraries `MLIRToolchain` in `backend.py` expects (`mlir-opt`, `mlir-cpu-runner`, `libmlir_runner_utils.so`, `libmlir_c_runner_utils.so`, `libomp.so`). A missing variable raises naming itself rather than failing silently.
 
-`default_backend()` falls back to TorchInductor with a warning when no toolchain is found. **Numbers from different backends are not interchangeable — always report which one produced them.**
+`default_backend()` falls back to TorchInductor with a warning when no toolchain is found. 
 
 ---
 

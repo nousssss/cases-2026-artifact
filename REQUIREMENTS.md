@@ -9,7 +9,7 @@ None of this is required to *run* the code. The search part runs on any
 commodity CPU (or GPU, via standard PyTorch device placement) with just the
 pip dependencies below.
 
-## Software: search half (no MLIR toolchain needed)
+## Software: search part (no MLIR toolchain needed)
 
 ```
 torch>=2.0
@@ -23,11 +23,9 @@ everything needed for `pytest tests/ -q`, the synthetic-data smoke test in
 `INSTALL.md`, and running the search itself.
 
 
-## Software: MLIR / compiler-integrated half
+## Software: MLIR / compiler-integrated part
 
-The code-optimisation backend (`--backend mlir`, `conas/compiler/`) that
-produces the paper's compiler-integrated speedup numbers (Figs. 6–7) needs,
-built from source:
+The code-optimisation backend (`--backend mlir`, `conas/compiler/`) built from source:
 
 1. **Two LLVM 17 builds** (`mlir-opt`, `mlir-cpu-runner`; see
    `mlir_pipeline/README.md` and `conas/compiler/backend.py`'s
@@ -35,33 +33,31 @@ built from source:
    `CONAS_MLIR_SOLUTION_BUILD_DIR` and `CONAS_MLIR_AUTOSCHEDULER_BUILD_DIR` at
    their `build/` directories.
 2. **torch-mlir**, built from source against one of the LLVM builds above,
-   with its Python bindings on `PYTHONPATH`. Do not `pip install torch-mlir` —
+   with its Python bindings on `PYTHONPATH`. Do not `pip install torch-mlir`,
    a wheel pins a different LLVM/torch combination. See
    `mlir_pipeline/BUILD.md` for build steps (also developed live at
    <https://github.com/nousssss/Convert-PyTorch-models-to-MLIR>, which is
    linked rather than vendored here).
 3. **[MLAutoScheduler](https://github.com/Modern-Compilers-Lab/MLAutoScheduler)**
-   (Aouadj & Baghdadi) — the `dev` branch. Needs
+   (Aouadj & Baghdadi), the `dev` branch. Needs
    `git submodule update --init --recursive` (pulls in the
    `coreAutoScheduler` submodule), CMake >= 3.20, Ninja, GCC/G++ 13.2, and an
    LLVM build with the `openmp` project enabled.
 
 ## Disk and build time
 
-Honest numbers, since this is genuinely expensive:
 
 * A **trimmed** from-source LLVM 17 + MLIR + torch-mlir build (no `clang`, no
   `stablehlo`, no LLVM/MLIR's own test suite, shallow single-commit checkout)
   took **roughly 20–30 minutes** on a 16-core/31 GB machine and used about
-  **5 GB** of disk, measured directly while drafting this document.
+  **5 GB** of disk.
 * That is **not representative of the full build MLAutoScheduler's own README
   asks for**, which additionally builds `clang`, comparable in size to
   building LLVM+MLIR again. Expect this to add on the order of an hour or
   more depending on hardware; not independently measured.
 * Budget **several hours and tens of GB of free disk** for the complete MLIR
   part (two LLVM checkouts/builds + torch-mlir + MLAutoScheduler) on modest
-  hardware, and check available disk space first — a from-source LLVM build
-  can fail messily if it runs out of space mid-link.
+  hardware, and check available disk space first.
 
 ## Links
 
