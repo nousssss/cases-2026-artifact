@@ -34,7 +34,7 @@ python run_search.py --model resnet20 --layer 1.1.conv1 --init struct \
 ```
 
 This runs an actual (tiny) evolutionary search against randomly-generated
-synthetic data, with an untrained (randomly initialised) baseline model — so
+synthetic data, with an untrained (randomly initialised) baseline model, so
 the accuracy numbers themselves are meaningless, but a successful run
 confirms the whole search pipeline (graph generation, mutation, crossover,
 constant optimisation, fitness evaluation, operator selection) executes
@@ -78,8 +78,8 @@ sections.
 
 ## 5. MLIR / compiler-integrated half (optional)
 
-See `REQUIREMENTS.md` for what's needed, and `mlir_pipeline/README.md` /
-`Convert-PyTorch-models-to-MLIR/README.md` for build steps. Once built:
+See `REQUIREMENTS.md` for what's needed, and `mlir_pipeline/BUILD.md` for
+build steps. Once built:
 
 ```bash
 export CONAS_MLIR_SOLUTION_BUILD_DIR=/path/to/solution/llvm-project/build

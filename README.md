@@ -77,21 +77,6 @@ To exercise the pipeline without any dataset, pass `--dataset synthetic`.
 | Sec. IV-A — fine-tuning protocol | `conas/finetune.py` |
 | Sec. IV-F — sequential greedy multi-layer, operator reuse | `conas/multilayer.py` |
 
-### Reproducing the figures
-
-| Figure | Command |
-|---|---|
-| Fig. 4 — no-op vs from-scratch | `python experiments/q1_scratch_ablation.py --checkpoint <ckpt>` |
-| Fig. 5 — initialisation vs accuracy | `python experiments/q2_init_comparison.py --checkpoint <ckpt>` |
-| Fig. 6 — CPU speedups | `python experiments/q2_init_comparison.py --device-label desktop-cpu` |
-| Fig. 7 — Raspberry Pi speedups | same, on the Pi, `--device-label rpi3` |
-| Fig. 8 — ResNet32 / ConvNeXt | `python experiments/q3_generalization.py --model resnet32` |
-| Figs. 9–10 — DAG diagrams | `python scripts/visualize_dag.py <graph.json>` |
-| Table II | `python experiments/compare_sota.py --results runs/` |
-| Sec. IV-F | `python experiments/run_multilayer.py --layers 3.2.conv2 3.2.conv1 ...` |
-
-Then render everything: `python experiments/plots.py --fig 4 5 6 8 --results runs/ --out figures/`
-
 ---
 
 ## How the search space is represented
@@ -124,13 +109,23 @@ Figures 6 and 7 report each variant **with** and **without** code optimisation. 
 
 The MLIR path is CONAS's integration point for **two separate, external toolchains** — build and use each per its own repo, not this one:
 
-* **[Convert-PyTorch-models-to-MLIR](Convert-PyTorch-models-to-MLIR)** (this project's own working torch-mlir setup) — build torch-mlir + LLVM 17 from source. `conas/compiler/backend.py` reproduces its `convert.sh`/`execute.sh` pipeline exactly (same flags, same two-build split); `conas/compiler/torch_mlir_export.py` ports its `touchup.py`/`wrap.py` into Python. Read that repo's own README for the build itself — LLVM/torch-mlir version pinning is fragile enough (nightly wheels get pruned, pass names change across versions) that duplicating build instructions here would only drift out of sync.
-* **[MLAutoScheduler](https://github.com/Modern-Compilers-Lab/MLAutoScheduler)** (Aouadj & Baghdadi) — the actual autoscheduler behind Sec. III-F's "MLIR autoscheduler" mention. It's a standalone beam-search-plus-execution benchmarking tool (`AutoSchedulerML <file.mlir>`), not a filter step CONAS calls automatically: `MLIRBackend.run_autoscheduler()` runs it on an already-lowered module and lets you inspect its own JSON/log output. Build and use it per that repo's README.
+* **torch-mlir / LLVM 17** — this project's own working torch-mlir setup. The
+  scripts (`convert.sh`/`execute.sh`/`wrap.py`/`touchup.py`/`example.ipynb`)
+  are archived in [`mlir_pipeline/`](mlir_pipeline); `conas/compiler/backend.py`
+  reproduces the `convert.sh`/`execute.sh` pipeline exactly (same flags, same
+  two-build split), and `conas/compiler/torch_mlir_export.py` ports
+  `touchup.py`/`wrap.py` into Python. Build steps are in
+  [`mlir_pipeline/BUILD.md`](mlir_pipeline/BUILD.md) (also developed live at
+  <https://github.com/nousssss/Convert-PyTorch-models-to-MLIR>, linked rather
+  than vendored here since LLVM/torch-mlir version pinning is fragile enough —
+  nightly wheels get pruned, pass names change across versions — that keeping
+  two copies of the build instructions in sync isn't worth it).
+* **[MLAutoScheduler](https://github.com/Modern-Compilers-Lab/MLAutoScheduler)** (Aouadj & Baghdadi) — the actual autoscheduler behind Sec. III-F's "MLIR autoscheduler" mention. It's a standalone beam-search-plus-execution benchmarking tool (`AutoSchedulerML <file.mlir>`), not a filter step CONAS calls automatically: `MLIRBackend.run_autoscheduler()` runs it on an already-lowered module and lets you inspect its own JSON/log output. Build and use it per that repo's README (third-party, not vendored; see `REQUIREMENTS.md`).
 
-Once both are built, point CONAS at them — this is the part that's actually CONAS's contract, so it's documented here:
+Once both are built, point CONAS at them, this is the part that's actually CONAS's contract, so it's documented here:
 
 ```bash
-# From Convert-PyTorch-models-to-MLIR's build (see that repo's README):
+# From mlir_pipeline/BUILD.md's build:
 export CONAS_MLIR_SOLUTION_BUILD_DIR=/path/to/Solution/llvm-project/build        # mlir-opt lowering + mlir-cpu-runner
 export CONAS_MLIR_AUTOSCHEDULER_BUILD_DIR=/path/to/Autoscheduler/llvm-project/build  # bufferize step + libomp.so
 
@@ -143,21 +138,6 @@ python experiments/q2_init_comparison.py --backend mlir
 Each `*_BUILD_DIR` must contain `bin/` and `lib/` with the binaries/libraries `MLIRToolchain` in `backend.py` expects (`mlir-opt`, `mlir-cpu-runner`, `libmlir_runner_utils.so`, `libmlir_c_runner_utils.so`, `libomp.so` — see that class's docstring for exactly which build provides which). A missing variable raises naming itself rather than failing silently.
 
 `default_backend()` falls back to TorchInductor with a warning when no toolchain is found. **Numbers from different backends are not interchangeable — always report which one produced them.**
-
----
-
-## Known deviations and caveats
-
-Please read this section before quoting any number this code produces.
-
-
-**3. Crossover repairs the output width rather than discarding.** Sec. III-C1 says invalid children are discarded. Here, a child whose final width ≠ `Cout` gets the same single learned projection the generator applies (`GraphGenerator.enforce_output`); all other violations — cycles, arity errors, intermediate shape mismatches, NaN/Inf — still cause the child to be discarded and another attempt generated. This is consistent with "shape correctness is enforced only at the graph's output", and it keeps the acceptance rate usable (≈96% of crossover attempts yield at least one valid child). Set `_finalise(..., repair_output=False)` for strict discard-only behaviour.
-
-**4. Constants are materialised by their consumer.** The paper lists "Constant Tensor" as an arity-0 node type. Because a constant's shape is only determined by the operation that consumes it (as Sec. III-E notes), the generator creates constants on demand with the shape their consumer requires. Free-standing constants are still emitted and are pruned if never consumed.
-
-**5. Structure-guided seeding uses the layer's own weights by default.** `conv_equivalent_graph(spec, conv)` seeds `Θ_W` from the convolution's kernel, making the seed numerically identical to the layer it replaces (verified to 1.2e-6 max abs error, float reassociation only). This mirrors GOS evolving from the original implementation. Pass `conv=None` for the same structure with `U(a,b)` constants.
-
-**6. Search cost.** The default budget (200 iterations × 300 candidates) is faithful to Sec. IV-A but expensive: each candidate runs constant optimisation plus a forward pass over `--fitness-batches` validation batches. A structural cache skips re-evaluating rediscovered DAGs. For iteration, cut `--iterations`, `--population` and `--fitness-batches` first.
 
 ---
 
@@ -183,6 +163,6 @@ experiments/         Q1, Q2, Q3, multi-layer, Table II, plots
 scripts/             baseline training, ablations, MLIR export, DAG rendering
 tests/               38 tests (2 need the MLIR toolchain, see Compiler backends)
 configs/             reference hyper-parameters
-Convert-PyTorch-models-to-MLIR/  external: working torch-mlir setup this pipeline mirrors
+mlir_pipeline/       archived convert.sh/execute.sh/wrap.py/touchup.py/example.ipynb + BUILD.md
 ```
 

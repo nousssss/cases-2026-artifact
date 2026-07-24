@@ -95,7 +95,7 @@ def compile_to_linalg_mlir(module: nn.Module, example_input) -> str:
     except ImportError as exc:
         raise RuntimeError(
             "torch-mlir is not importable. Build it from source against this "
-            "project's LLVM 17 tree (see Convert-PyTorch-models-to-MLIR/README.md) "
+            "project's LLVM 17 tree (see mlir_pipeline/BUILD.md) "
             "and put its Python bindings on PYTHONPATH. Do not `pip install "
             "torch-mlir` -- a wheel pins a different LLVM and torch build."
         ) from exc

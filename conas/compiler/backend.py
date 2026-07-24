@@ -16,7 +16,7 @@ provides that switch:
 ============================  ==========================================
 
 ``MLIRBackend`` lowers through torch-mlir using the exact pipeline recorded in
-``Convert-PyTorch-models-to-MLIR`` (``convert.sh`` / ``execute.sh``), this
+https://github.com/nousssss/Convert-PyTorch-models-to-MLIR (``convert.sh`` / ``execute.sh``), this
 project's own working torch-mlir setup -- see :mod:`conas.compiler.torch_mlir_export`.
 It requires two LLVM 17 builds (see ``MLIRToolchain``) and, for now, torch-mlir's
 Python bindings on ``PYTHONPATH``.  Neither ships with pip, so
@@ -146,7 +146,7 @@ class MLIRToolchain:
         if not build_dir:
             raise RuntimeError(
                 f"{var_name} is not set. Point it at the LLVM 17 'build' directory "
-                "described in Convert-PyTorch-models-to-MLIR/README.md (step VII)."
+                "described in mlir_pipeline/BUILD.md (step VII)."
             )
         return os.path.join(build_dir, "bin", exe)
 
@@ -154,7 +154,7 @@ class MLIRToolchain:
         if not build_dir:
             raise RuntimeError(
                 f"{var_name} is not set. Point it at the LLVM 17 'build' directory "
-                "described in Convert-PyTorch-models-to-MLIR/README.md (step VII)."
+                "described in mlir_pipeline/BUILD.md (step VII)."
             )
         return os.path.join(build_dir, "lib", lib)
 
